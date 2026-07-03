@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b3d91" />
+<title>HK Live Transit · 香港實時到站</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🚌</span>
+    <div class="brand-text">
+      <h1 data-i18n="title">HK Live Transit</h1>
+      <span class="subtitle" data-i18n="subtitle">Real-time arrivals · 香港實時到站</span>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button id="langToggle" class="btn ghost" title="Language / 語言">繁體</button>
+    <button id="refreshBtn" class="btn ghost" title="Refresh / 重新整理">⟳</button>
+    <span id="lastUpdated" class="last-updated"></span>
+  </div>
+</header>
+
+<main class="dash">
+  <aside class="board" id="board">
+    <section class="board-sec">
+      <div class="board-head">
+        <h2 id="boardTitle" data-i18n="select_stop">Select a stop</h2>
+        <button id="boardFav" class="btn ghost small" title="">☆</button>
+      </div>
+      <div id="boardList" class="eta-list"></div>
+    </section>
+
+    <section class="board-sec">
+      <div class="board-head"><h2 data-i18n="tab_search">Search</h2></div>
+      <div class="search-row">
+        <select id="searchMode" class="select">
+          <option value="kmb">KMB / 九巴</option>
+          <option value="ctb">CTB / 城巴</option>
+          <option value="gmb">GMB / 小巴</option>
+        </select>
+        <input id="routeInput" class="input" inputmode="numeric" placeholder="e.g. 968, 1A, 1" data-i18n-ph="route_ph" />
+        <button id="searchBtn" class="btn primary" data-i18n="search">Search</button>
+      </div>
+      <div id="recentRow" class="recent-row" hidden>
+        <span class="recent-label" data-i18n="recent">Recent</span>
+        <div id="recentChips" class="chips"></div>
+      </div>
+      <div class="examples">
+        <span class="ex-label" data-i18n="try">Try</span>
+        <button class="chip" data-mode="kmb" data-route="968">968</button>
+        <button class="chip" data-mode="ctb" data-route="1">CTB 1</button>
+        <button class="chip" data-mode="gmb" data-route="1">GMB 1</button>
+      </div>
+      <ol id="stepBar" class="step-bar" hidden>
+        <li data-step="1"><span class="step-n">1</span><span data-i18n="step1">Route</span></li>
+        <li data-step="2"><span class="step-n">2</span><span data-i18n="step2">Direction</span></li>
+        <li data-step="3"><span class="step-n">3</span><span data-i18n="step3">Stop</span></li>
+      </ol>
+      <div id="searchStatus" class="status"></div>
+      <div id="routeStops" class="stop-list"></div>
+    </section>
+
+    <section class="board-sec">
+      <div class="board-head"><h2 data-i18n="tab_fav">Favorites</h2></div>
+      <div id="favList" class="fav-grid"></div>
+    </section>
+
+    <section class="board-sec">
+      <div class="board-head">
+        <h2 data-i18n="tab_nearme">Near me</h2>
+        <button id="locateBtn" class="btn small" data-i18n="locate">Locate me</button>
+      </div>
+      <div id="nearmeList" class="stop-list"><div class="empty" data-i18n="near_hint">Tap “Locate me” to find nearby stops.</div></div>
+    </section>
+  </aside>
+
+  <section class="map-wrap">
+    <div id="map" class="map"></div>
+    <div id="mapControls" class="map-controls">
+      <button id="mtrBtn" class="map-btn" title="MTR lines / 港鐵路綫">🚇 <span data-i18n="mtr_label">MTR</span></button>
+      <button id="legendBtn" class="map-btn" title="Legend / 圖例">🗂 <span data-i18n="legend">Legend</span></button>
+      <button id="pinsBtn" class="map-btn" title="Toggle bus pins">📍 <span data-i18n="hide_pins">Hide bus pins</span></button>
+    </div>
+    <div id="mapLegend" class="map-legend" hidden>
+      <div class="legend-row"><span class="leg-dot" style="background:#d63031"></span><span data-i18n="kmb_label">KMB bus</span></div>
+      <div class="legend-row"><span class="leg-dot mtr" style="background:#0984e3"></span><span data-i18n="mtr_label">MTR</span></div>
+    </div>
+    <div id="mapLoading" class="map-loading" hidden>
+      <div class="spinner"></div>
+      <span data-i18n="loading_stops">Loading stops…</span>
+    </div>
+    <div id="zoomHint" class="zoom-hint" hidden data-i18n="zoom_hint">Zoom in to see stops</div>
+    <div id="firstHint" class="first-hint"><span data-i18n="tap_hint">Tap a pin for arrivals · 🚇 for MTR</span> <button id="firstHintClose" class="btn ghost small">✕</button></div>
+  </section>
+</main>
+
+<div id="mtrSheet" class="mtr-sheet" hidden>
+  <div class="mtr-sheet-card">
+    <div class="mtr-sheet-head">
+      <h2 data-i18n="mtr_picker">MTR lines</h2>
+      <button id="mtrSheetClose" class="btn ghost small">✕</button>
+    </div>
+    <div id="mtrLines" class="mtr-lines"></div>
+    <div id="mtrStations" class="mtr-stations"></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <span data-i18n="data_src">Data: DATA.GOV.HK (KMB · CTB · GMB · MTR)</span>
+  <span class="dot">·</span>
+  <span data-i18n="basemap">Basemap: geodata.gov.hk</span>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/stops-data.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
